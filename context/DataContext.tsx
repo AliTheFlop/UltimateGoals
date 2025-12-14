@@ -27,6 +27,7 @@ export interface Task {
   id: string;
   text: string;
   completed: boolean;
+  frequency?: RecurrenceFrequency; // Optional tag for recurring tasks
 }
 
 export interface WeeklyPlan {
@@ -56,12 +57,13 @@ export interface DailyPlan {
   review?: Review;
 }
 
-export type RecurrenceFrequency = "daily" | "weekly" | "monthly";
+export type RecurrenceFrequency = "daily" | "weekly" | "monthly" | "yearly";
 
 export interface RecurringTask {
   id: string;
   text: string;
   frequency: RecurrenceFrequency;
+  time?: string; // HH:MM
 }
 
 export interface Note {
@@ -72,6 +74,8 @@ export interface Note {
 }
 
 interface DataContextType {
+  planningYears: number[];
+  setPlanningYears: (years: number[]) => void;
   ultimateGoal: string;
   setUltimateGoal: (goal: string) => void;
   yearlyGoals: YearlyGoal[];
@@ -102,10 +106,11 @@ export function useData() {
 
 // --- Provider ---
 
-const STORAGE_KEY = "ultimate_goals_data_v1.2";
+const STORAGE_KEY = "ultimate_goals_data_v1.3";
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   // Initial state
+  const [planningYears, setPlanningYears] = useState<number[]>([]);
   const [ultimateGoal, setUltimateGoal] = useState<string>("");
   const [yearlyGoals, setYearlyGoals] = useState<YearlyGoal[]>([]);
   const [monthlyGoals, setMonthlyGoals] = useState<MonthlyGoal[]>([]);
@@ -121,6 +126,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
+        // Ensure years are loaded or default
+        const keys = Object.keys(parsed);
+        if (parsed.planningYears && parsed.planningYears.length > 0) {
+             setPlanningYears(parsed.planningYears);
+        } else {
+             const currentYear = new Date().getFullYear();
+             setPlanningYears([currentYear, currentYear + 1, currentYear + 2]);
+        }
+        
         setUltimateGoal(parsed.ultimateGoal || "");
         setYearlyGoals(parsed.yearlyGoals || []);
         setMonthlyGoals(parsed.monthlyGoals || []);
@@ -132,27 +146,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         console.error("Failed to parse data", e);
       }
     } else {
-         // Attempt Migration from v1 or v1.1
-         // Prioritize v1.0 ultimate goal restoration if available because v1.1 broke it into array
-         const v1 = localStorage.getItem("ultimate_goals_data_v1");
-         if (v1) {
+         // Default Years
+         const currentYear = new Date().getFullYear();
+         setPlanningYears([currentYear, currentYear + 1, currentYear + 2]);
+
+         // Migration V1.2
+         const v1_2 = localStorage.getItem("ultimate_goals_data_v1.2");
+         if (v1_2) {
              try {
-                 const parsedV1 = JSON.parse(v1);
-                 if (parsedV1.ultimateGoal) setUltimateGoal(parsedV1.ultimateGoal);
-             } catch(e) {}
-         }
-         
-         // Try to migrate notes/daily from v1.1
-         const v1_1 = localStorage.getItem("ultimate_goals_data_v1.1");
-         if (v1_1) {
-             try {
-                 const parsed = JSON.parse(v1_1);
-                 setNotes(parsed.notes || []);
-                 setDailyPlans(parsed.dailyPlans || []);
-                 setRecurringTasks(parsed.recurringTasks || []);
+                 const parsed = JSON.parse(v1_2);
+                 setUltimateGoal(parsed.ultimateGoal || "");
+                 setYearlyGoals(parsed.yearlyGoals || []);
+                 setMonthlyGoals(parsed.monthlyGoals || []);
                  setWeeklyPlans(parsed.weeklyPlans || []);
-                 // Yearly goals incompatible, skip.
-             } catch (e) {}
+                 setDailyPlans(parsed.dailyPlans || []);
+                 // recurring tasks structure compatible enough (extra fields optional)
+                 setRecurringTasks(parsed.recurringTasks || []);
+                 setNotes(parsed.notes || []);
+             } catch(e) {}
          }
     }
     setIsLoaded(true);
@@ -162,6 +173,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isLoaded) return;
     const data = {
+      planningYears,
       ultimateGoal,
       yearlyGoals,
       monthlyGoals,
@@ -171,7 +183,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       notes,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }, [ultimateGoal, yearlyGoals, monthlyGoals, weeklyPlans, dailyPlans, recurringTasks, notes, isLoaded]);
+  }, [planningYears, ultimateGoal, yearlyGoals, monthlyGoals, weeklyPlans, dailyPlans, recurringTasks, notes, isLoaded]);
 
   if (!isLoaded) {
     return null;
@@ -180,6 +192,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   return (
     <DataContext.Provider
       value={{
+        planningYears,
+        setPlanningYears,
         ultimateGoal,
         setUltimateGoal,
         yearlyGoals,

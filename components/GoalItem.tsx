@@ -11,6 +11,8 @@ interface GoalItemProps {
   onChange: (text: string) => void;
   onDelete: () => void;
   placeholder?: string;
+  extraActions?: React.ReactNode;
+  frequency?: string;
 }
 
 export function GoalItem({
@@ -20,6 +22,8 @@ export function GoalItem({
   onChange,
   onDelete,
   placeholder = "Enter goal...",
+  extraActions,
+  frequency,
 }: GoalItemProps) {
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -58,6 +62,14 @@ export function GoalItem({
           completed ? "line-through text-zinc-500" : "text-zinc-200"
         )}
       />
+      
+      {frequency && (
+          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 self-center mr-2">
+              {frequency}
+          </span>
+      )}
+      
+      {extraActions}
 
       <button
         onClick={onDelete}
