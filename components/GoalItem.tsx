@@ -40,7 +40,7 @@ export function GoalItem({
       <button
         onClick={onToggle}
         className={cn(
-          "flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors",
+          "flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors mt-1",
           completed
             ? "bg-amber-500 border-amber-500 text-zinc-950"
             : "border-zinc-600 hover:border-amber-500/50"
@@ -49,35 +49,37 @@ export function GoalItem({
         {completed && <Check className="w-4 h-4" strokeWidth={3} />}
       </button>
 
-      <input
-        ref={inputRef}
-        type="text"
-        value={text}
-        onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setIsFocused(true)}
-        onBlur={() => setIsFocused(false)}
-        placeholder={placeholder}
-        className={cn(
-          "flex-1 bg-transparent border-none outline-none text-lg placeholder:text-zinc-700",
-          completed ? "line-through text-zinc-500" : "text-zinc-200"
-        )}
-      />
+      <div className="flex-1 min-w-0 flex flex-col gap-1">
+          <input
+            ref={inputRef}
+            type="text"
+            value={text}
+            onChange={(e) => onChange(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder={placeholder}
+            className={cn(
+              "flex-1 bg-transparent border-none outline-none text-lg placeholder:text-zinc-700 min-w-0 w-full",
+              completed ? "line-through text-zinc-500" : "text-zinc-200"
+            )}
+          />
+          {frequency && (
+              <span className="self-start text-[10px] font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                  {frequency}
+              </span>
+          )}
+      </div>
       
-      {frequency && (
-          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20 self-center mr-2">
-              {frequency}
-          </span>
-      )}
-      
-      {extraActions}
-
-      <button
-        onClick={onDelete}
-        className="opacity-0 group-hover:opacity-100 p-2 text-zinc-600 hover:text-red-400 transition-opacity"
-        title="Delete goal"
-      >
-        <Trash2 className="w-4 h-4" />
-      </button>
+      <div className="flex items-center gap-1 self-start mt-1">
+          {extraActions}
+          <button
+            onClick={onDelete}
+            className="opacity-0 group-hover:opacity-100 p-2 text-zinc-600 hover:text-red-400 transition-opacity"
+            title="Delete goal"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+      </div>
     </div>
   );
 }

@@ -159,29 +159,32 @@ export default function YearlyGoalsPage() {
 
           {filteredGoals.map(goal => (
               <div key={goal.id} className="relative group bg-zinc-900 border border-zinc-800 p-6 rounded-xl hover:border-zinc-700 transition-colors">
-                  <div className="flex items-start justify-between mb-4">
-                       <h3 className="text-xl font-bold text-zinc-200">{goal.specific}</h3>
+                  <div className="absolute top-4 right-4">
                        <button onClick={() => deleteGoal(goal.id)} className="opacity-0 group-hover:opacity-100 text-zinc-600 hover:text-red-400 transition-opacity">
                            <Trash2 className="w-4 h-4" />
                        </button>
                   </div>
                   
-                  <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm mt-2">
+                      <div className="bg-zinc-950/50 p-3 rounded-lg border border-zinc-900 md:col-span-2 lg:col-span-1">
+                          <span className="text-amber-500 font-bold uppercase text-[10px] tracking-wider block mb-1">Specific</span>
+                          <p className="text-zinc-200 whitespace-pre-wrap">{goal.specific}</p>
+                      </div>
                       <div className="bg-zinc-950/50 p-3 rounded-lg border border-zinc-900">
                           <span className="text-teal-500 font-bold uppercase text-[10px] tracking-wider block mb-1">Measurable</span>
-                          <p className="text-zinc-400">{goal.measurable}</p>
+                          <p className="text-zinc-400 whitespace-pre-wrap">{goal.measurable}</p>
                       </div>
                       <div className="bg-zinc-950/50 p-3 rounded-lg border border-zinc-900">
                           <span className="text-blue-500 font-bold uppercase text-[10px] tracking-wider block mb-1">Achievable</span>
-                          <p className="text-zinc-400">{goal.achievable}</p>
+                          <p className="text-zinc-400 whitespace-pre-wrap">{goal.achievable}</p>
                       </div>
                       <div className="bg-zinc-950/50 p-3 rounded-lg border border-zinc-900">
                           <span className="text-purple-500 font-bold uppercase text-[10px] tracking-wider block mb-1">Relevant</span>
-                          <p className="text-zinc-400">{goal.relevant}</p>
+                          <p className="text-zinc-400 whitespace-pre-wrap">{goal.relevant}</p>
                       </div>
                       <div className="bg-zinc-950/50 p-3 rounded-lg border border-zinc-900">
                           <span className="text-rose-500 font-bold uppercase text-[10px] tracking-wider block mb-1">Time-Bound</span>
-                          <p className="text-zinc-400">{goal.timeBound}</p>
+                          <p className="text-zinc-400 whitespace-pre-wrap">{goal.timeBound}</p>
                       </div>
                   </div>
               </div>
@@ -200,9 +203,9 @@ export default function YearlyGoalsPage() {
                   <div className="space-y-4">
                       <div>
                           <label className="block text-sm font-medium text-zinc-400 mb-1">Specific</label>
-                          <input 
+                          <textarea 
                               placeholder="What exactly do you want to accomplish?"
-                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-zinc-200 outline-none focus:border-amber-500"
+                              className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-zinc-200 outline-none focus:border-amber-500 min-h-[100px] resize-y"
                               value={smart.specific}
                               onChange={e => setSmart({...smart, specific: e.target.value})}
                           />
@@ -211,36 +214,36 @@ export default function YearlyGoalsPage() {
                       <div className="grid md:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-teal-500/80 mb-1">Measurable</label>
-                            <input 
+                            <textarea 
                                 placeholder="How will you measure success?"
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-zinc-200 outline-none focus:border-teal-500/50"
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-zinc-200 outline-none focus:border-teal-500/50 resize-y"
                                 value={smart.measurable}
                                 onChange={e => setSmart({...smart, measurable: e.target.value})}
                             />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-blue-500/80 mb-1">Achievable</label>
-                            <input 
+                            <textarea 
                                 placeholder="Is this realistic?"
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-zinc-200 outline-none focus:border-blue-500/50"
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-zinc-200 outline-none focus:border-blue-500/50 resize-y"
                                 value={smart.achievable}
                                 onChange={e => setSmart({...smart, achievable: e.target.value})}
                             />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-purple-500/80 mb-1">Relevant</label>
-                            <input 
+                            <textarea 
                                 placeholder="Why is this important now?"
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-zinc-200 outline-none focus:border-purple-500/50"
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-zinc-200 outline-none focus:border-purple-500/50 resize-y"
                                 value={smart.relevant}
                                 onChange={e => setSmart({...smart, relevant: e.target.value})}
                             />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-rose-500/80 mb-1">Time-Bound</label>
-                            <input 
+                            <textarea 
                                 placeholder="When will this be achieved?"
-                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-zinc-200 outline-none focus:border-rose-500/50"
+                                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-zinc-200 outline-none focus:border-rose-500/50 resize-y"
                                 value={smart.timeBound}
                                 onChange={e => setSmart({...smart, timeBound: e.target.value})}
                             />
