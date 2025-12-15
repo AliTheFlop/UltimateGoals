@@ -3,6 +3,7 @@ import { Host_Grotesk, Istok_Web } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { Sidebar } from "@/components/Sidebar";
+import { AutoSaveIndicator } from "@/components/AutoSaveIndicator";
 
 const hostGrotesk = Host_Grotesk({
   subsets: ["latin"],
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${hostGrotesk.variable} ${istokWeb.variable} antialiased`}>
         <Providers>
+          <AutoSaveIndicator />
           <div className="flex h-screen bg-zinc-950 text-zinc-200">
             <Sidebar />
             <main className="flex-1 overflow-auto p-8 md:p-12">

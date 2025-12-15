@@ -10,13 +10,35 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Global Settings (Singleton pattern usually, or just one row)
-model GlobalSettings {
+// User System
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String   // Hashed
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  userSettings   UserSettings[]
+  yearlyGoals    YearlyGoal[]
+  monthlyGoals   MonthlyGoal[]
+  weeklyPlans    WeeklyPlan[]
+  dailyPlans     DailyPlan[]
+  recurringTasks RecurringTask[]
+  notes          Note[]
+}
+
+// Global Settings (Now UserSettings)
+model UserSettings {
   id            String   @id @default(uuid())
   ultimateGoal  String   @default("")
   planningYears String   @default("[]") // JSON string of number[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+  
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // Goals
@@ -31,6 +53,9 @@ model YearlyGoal {
   completed   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model MonthlyGoal {
@@ -41,6 +66,9 @@ model MonthlyGoal {
   completed Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // Weekly Plan
@@ -52,7 +80,14 @@ model WeeklyPlan {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  @@unique([weekStart])
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Combined unique constraint for user + weekStart (if required later, but for now unique weekStart is risky if multiple users have same week. We should remove the simple unique weekStart or make it compound)
+  // @@unique([weekStart]) -> REPLACED by compound below (optional for now, let's just drop the unique constraint or make it compound globally?)
+  // For SQLite, simple unique is global. We need compound [userId, weekStart].
+  // But userId is currently optional. This is tricky.
+  // STRATEGY: Remove the @unique([weekStart]) constraint for now to allow multiple users to have same weekStart.
 }
 
 model WeeklyTask {
@@ -76,7 +111,11 @@ model DailyPlan {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 
-  @@unique([date])
+  userId           String?
+  user             User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Similarly, remove global unique date constraint
+  // @@unique([date])
 }
 
 model DailySection {
@@ -104,6 +143,9 @@ model RecurringTask {
   time      String? // HH:MM
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // Notes
@@ -113,4 +155,7 @@ model Note {
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { auth } from "@/auth";
 
-// TYPE DEFINITIONS (Matching DataContext)
-// We need these to type the incoming body
+// TYPE DEFINITIONS
 type IncomingData = {
   ultimateGoal?: string;
   planningYears?: number[];
@@ -15,33 +15,39 @@ type IncomingData = {
 };
 
 export async function GET() {
+  const session = await auth();
+  if (!session || !session.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
+
   try {
-    // 1. Fetch Global Settings
-    const settings = await prisma.globalSettings.findFirst();
+    // 1. Fetch User Settings
+    const settings = await prisma.userSettings.findFirst({
+        where: { userId }
+    });
     const planningYears = settings ? JSON.parse(settings.planningYears) : [];
     const ultimateGoal = settings?.ultimateGoal || "";
 
-    // 2. Fetch Lists
-    const yearlyGoals = await prisma.yearlyGoal.findMany();
-    const monthlyGoals = await prisma.monthlyGoal.findMany();
+    // 2. Fetch Lists (Scoped to User)
+    const yearlyGoals = await prisma.yearlyGoal.findMany({ where: { userId } });
+    const monthlyGoals = await prisma.monthlyGoal.findMany({ where: { userId } });
     const weeklyPlans = await prisma.weeklyPlan.findMany({
+      where: { userId },
       include: { tasks: true },
     });
     const dailyPlans = await prisma.dailyPlan.findMany({
+      where: { userId },
       include: {
         sections: {
           include: { tasks: true },
         },
       },
     });
-    const recurringTasks = await prisma.recurringTask.findMany();
-    const notes = await prisma.note.findMany();
+    const recurringTasks = await prisma.recurringTask.findMany({ where: { userId } });
+    const notes = await prisma.note.findMany({ where: { userId } });
 
-    // 3. Format Daily Plans to match Frontend Structure
-    // Prisma returns sections -> tasks. Frontend expects sections -> tasks. This matches.
-    // However, we need to map the "review" fields from columns to an object if needed?
-    // In schema: reviewWhatDidIDo, etc.
-    // In context: review?: { whatDidIDo: string, ... }
+    // 3. Format Daily Plans
     const formattedDailyPlans = dailyPlans.map((dp) => ({
       ...dp,
       review:
@@ -73,18 +79,22 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const session = await auth();
+  if (!session || !session.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const userId = session.user.id;
+
   try {
     const data: IncomingData = await request.json();
 
     // Transaction to ensure consistency
-    // Strategy: Wipe and Rewrite (simplest for full sync behavior)
-    // In production with many users this is bad. For local single-user, it's fine and robust.
+    // Strategy: Wipe and Rewrite SCOPED TO USER
     await prisma.$transaction(async (tx) => {
-      // 1. Global Settings
-      // Check if exists, update or create
-      const existingSettings = await tx.globalSettings.findFirst();
+      // 1. User Settings
+      const existingSettings = await tx.userSettings.findFirst({ where: { userId } });
       if (existingSettings) {
-        await tx.globalSettings.update({
+        await tx.userSettings.update({
           where: { id: existingSettings.id },
           data: {
             ultimateGoal: data.ultimateGoal || "",
@@ -92,8 +102,9 @@ export async function POST(request: Request) {
           },
         });
       } else {
-        await tx.globalSettings.create({
+        await tx.userSettings.create({
           data: {
+            userId,
             ultimateGoal: data.ultimateGoal || "",
             planningYears: JSON.stringify(data.planningYears || []),
           },
@@ -101,11 +112,12 @@ export async function POST(request: Request) {
       }
 
       // 2. Yearly Goals
-      await tx.yearlyGoal.deleteMany(); // Clear old
+      await tx.yearlyGoal.deleteMany({ where: { userId } });
       if (data.yearlyGoals?.length) {
         await tx.yearlyGoal.createMany({
           data: data.yearlyGoals.map((g) => ({
             id: g.id,
+            userId,
             year: g.year,
             specific: g.specific,
             measurable: g.measurable,
@@ -118,11 +130,12 @@ export async function POST(request: Request) {
       }
 
       // 3. Monthly Goals
-      await tx.monthlyGoal.deleteMany();
+      await tx.monthlyGoal.deleteMany({ where: { userId } });
       if (data.monthlyGoals?.length) {
         await tx.monthlyGoal.createMany({
           data: data.monthlyGoals.map((g) => ({
             id: g.id,
+            userId,
             text: g.text,
             month: g.month,
             year: g.year,
@@ -132,11 +145,12 @@ export async function POST(request: Request) {
       }
 
       // 4. Recurring Tasks
-      await tx.recurringTask.deleteMany();
+      await tx.recurringTask.deleteMany({ where: { userId } });
       if (data.recurringTasks?.length) {
         await tx.recurringTask.createMany({
           data: data.recurringTasks.map((t) => ({
             id: t.id,
+            userId,
             text: t.text,
             frequency: t.frequency,
             time: t.time,
@@ -145,26 +159,27 @@ export async function POST(request: Request) {
       }
 
       // 5. Notes
-      await tx.note.deleteMany();
+      await tx.note.deleteMany({ where: { userId } });
       if (data.notes?.length) {
         await tx.note.createMany({
           data: data.notes.map((n) => ({
             id: n.id,
+            userId,
             title: n.title,
             content: n.content,
-            createdAt: n.createdAt ? new Date(n.createdAt) : undefined, // parsing/keeping ISO
+            createdAt: n.createdAt ? new Date(n.createdAt) : undefined,
           })),
         });
       }
 
-      // 6. Weekly Plans (Nested)
-      // Delete all weekly plans (cascades to tasks)
-      await tx.weeklyPlan.deleteMany();
+      // 6. Weekly Plans
+      await tx.weeklyPlan.deleteMany({ where: { userId } });
       if (data.weeklyPlans?.length) {
         for (const plan of data.weeklyPlans) {
           await tx.weeklyPlan.create({
             data: {
               id: plan.id,
+              userId,
               weekStart: plan.weekStart,
               bigGoal: plan.bigGoal,
               tasks: {
@@ -180,14 +195,14 @@ export async function POST(request: Request) {
         }
       }
 
-      // 7. Daily Plans (Doubly Nested)
-      // Delete all daily plans (cascades to sections -> tasks)
-      await tx.dailyPlan.deleteMany();
+      // 7. Daily Plans
+      await tx.dailyPlan.deleteMany({ where: { userId } });
       if (data.dailyPlans?.length) {
         for (const plan of data.dailyPlans) {
           await tx.dailyPlan.create({
             data: {
               id: plan.id,
+              userId,
               date: plan.date,
               reviewWhatDidIDo: plan.review?.whatDidIDo || "",
               reviewMovedFwd: plan.review?.whatMovedForward || "",

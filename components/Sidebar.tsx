@@ -13,6 +13,11 @@ import {
   FileText,
 } from "lucide-react";
 
+import { signOut } from "next-auth/react";
+import { LogOut } from "lucide-react";
+
+// ... existing code ...
+
 const navItems = [
   { href: "/ultimate-goal", label: "Ultimate Goal", icon: Target },
   { href: "/yearly", label: "Yearly Goals", icon: Calendar },
@@ -33,7 +38,7 @@ export function Sidebar() {
           UltimateGoals
         </h1>
       </div>
-      <nav className="space-y-2">
+      <nav className="space-y-2 flex-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -54,10 +59,18 @@ export function Sidebar() {
           );
         })}
       </nav>
-      <div className="mt-auto">
+      
+      <div className="mt-auto space-y-4">
         <div className="p-4 rounded-lg bg-zinc-900/50 border border-zinc-900">
            <p className="text-xs text-zinc-500 text-center">Focus on the essential.</p>
         </div>
+        <button
+          onClick={() => signOut()}
+          className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-zinc-500 hover:text-red-400 hover:bg-zinc-900/50 transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          Logout
+        </button>
       </div>
     </aside>
   );

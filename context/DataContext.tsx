@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 
 // --- Types ---
 
@@ -73,6 +74,8 @@ export interface Note {
   createdAt: string;
 }
 
+export type SaveStatus = "idle" | "pending" | "saving" | "error";
+
 interface DataContextType {
   planningYears: number[];
   setPlanningYears: (years: number[]) => void;
@@ -90,6 +93,7 @@ interface DataContextType {
   setRecurringTasks: (tasks: RecurringTask[]) => void;
   notes: Note[];
   setNotes: (notes: Note[]) => void;
+  saveStatus: SaveStatus;
 }
 
 // --- Context ---
@@ -119,16 +123,61 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [recurringTasks, setRecurringTasks] = useState<RecurringTask[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  
+  const { status } = useSession();
 
-  // Load from API on mount
+  // Load from API on Auth Success
   useEffect(() => {
+    if (status === "loading") return;
+
+    if (status === "unauthenticated") {
+        // Allow app to render (login page) but with empty data
+        setSaveStatus("idle");
+        setIsLoaded(true);
+        return;
+    }
+
+    // Status is authenticated
     async function fetchData() {
       try {
         const res = await fetch("/api/data");
-        if (!res.ok) throw new Error("Failed to fetch");
-        const parsed = await res.json();
         
-        // Ensure years are loaded or default
+        let parsed: any = {};
+        let shouldUseLocalStorage = false;
+
+        if (res.ok) {
+           parsed = await res.json();
+           
+           // CHECK EMPTY DB SCENARIO: 
+           const dbIsEmpty = 
+             (!parsed.yearlyGoals || parsed.yearlyGoals.length === 0) &&
+             (!parsed.weeklyPlans || parsed.weeklyPlans.length === 0) &&
+             (!parsed.dailyPlans || parsed.dailyPlans.length === 0);
+
+           const localSaved = localStorage.getItem(STORAGE_KEY);
+           if (dbIsEmpty && localSaved) {
+              console.log("Database empty. Recovering from LocalStorage...");
+              try {
+                parsed = JSON.parse(localSaved);
+                shouldUseLocalStorage = true;
+                // Since we just loaded from LocalStorage (dirty state), we might want to trigger save immediately?
+                // But let's just let the normal save logic handle changes if any.
+                // Actually, if we recover, we have data. Ideally we save it back to DB.
+                // We'll mark it as loaded, which triggers the 'useEffect' below because values changed. 
+                // Wait, values set here won't trigger change if we set them before isLoaded is true?
+                // No, dependency array will see change. But isLoaded false prevents save.
+                // Then isLoaded true. Effect runs.
+              } catch (e) {
+                console.error("Local recovery failed", e);
+              }
+           }
+        } else {
+           console.error("API Fetch failed", res.status);
+           setIsLoaded(true); 
+           return; 
+        }
+        
         if (parsed.planningYears && parsed.planningYears.length > 0) {
              setPlanningYears(parsed.planningYears);
         } else {
@@ -143,18 +192,35 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setDailyPlans(parsed.dailyPlans || []);
         setRecurringTasks(parsed.recurringTasks || []);
         setNotes(parsed.notes || []);
+
+        setIsLoaded(true); 
       } catch (e) {
         console.error("Failed to load data", e);
-      } finally {
-        setIsLoaded(true);
+        setIsLoaded(true); 
       }
     }
     fetchData();
-  }, []);
+  }, [status]);
+
+  // Protection against closing tab
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (saveStatus !== "idle") {
+        e.preventDefault();
+        e.returnValue = ""; // Chrome requires this
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [saveStatus]);
 
   // Save to API on change (Debounced)
   useEffect(() => {
     if (!isLoaded) return;
+
+    // Data has changed, set to pending immediately
+    setSaveStatus("pending");
 
     const data = {
       planningYears,
@@ -168,6 +234,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     };
 
     const timeoutId = setTimeout(async () => {
+      setSaveStatus("saving");
       try {
         await fetch("/api/data", {
            method: "POST",
@@ -175,8 +242,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
            body: JSON.stringify(data)
         });
         console.log("Auto-saved to DB");
+        setSaveStatus("idle");
       } catch (e) {
         console.error("Failed to save", e);
+        setSaveStatus("error");
       }
     }, 2000); // 2 second debounce
 
@@ -206,6 +275,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setRecurringTasks,
         notes,
         setNotes,
+        saveStatus,
       }}
     >
       {children}
