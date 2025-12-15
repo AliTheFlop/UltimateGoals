@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Host_Grotesk, Istok_Web } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
@@ -20,6 +20,20 @@ const istokWeb = Istok_Web({
 export const metadata: Metadata = {
   title: "UltimateGoals",
   description: "Align your life. One goal at a time.",
+  manifest: "/manifest.v2.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "UltimateGoals",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#09090b",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, // App-like feel
 };
 
 export default function RootLayout({

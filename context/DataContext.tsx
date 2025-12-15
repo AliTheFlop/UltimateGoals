@@ -217,7 +217,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   // Save to API on change (Debounced)
   useEffect(() => {
-    if (!isLoaded) return;
+    if (!isLoaded || status !== "authenticated") return;
 
     // Data has changed, set to pending immediately
     setSaveStatus("pending");
