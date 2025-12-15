@@ -1,0 +1,116 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Global Settings (Singleton pattern usually, or just one row)
+model GlobalSettings {
+  id            String   @id @default(uuid())
+  ultimateGoal  String   @default("")
+  planningYears String   @default("[]") // JSON string of number[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Goals
+model YearlyGoal {
+  id          String   @id @default(uuid())
+  year        Int
+  specific    String   @default("")
+  measurable  String   @default("")
+  achievable  String   @default("")
+  relevant    String   @default("")
+  timeBound   String   @default("")
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MonthlyGoal {
+  id        String   @id @default(uuid())
+  text      String
+  month     Int // 0-11
+  year      Int
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Weekly Plan
+model WeeklyPlan {
+  id        String       @id @default(uuid())
+  weekStart String // ISO date string YYYY-MM-DD
+  bigGoal   String       @default("")
+  tasks     WeeklyTask[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@unique([weekStart])
+}
+
+model WeeklyTask {
+  id           String     @id @default(uuid())
+  text         String
+  completed    Boolean    @default(false)
+  frequency    String? // "daily", "weekly", etc (RecurrenceFrequency)
+  weeklyPlanId String
+  weeklyPlan   WeeklyPlan @relation(fields: [weeklyPlanId], references: [id], onDelete: Cascade)
+}
+
+// Daily Plan
+model DailyPlan {
+  id               String         @id @default(uuid())
+  date             String // ISO date string YYYY-MM-DD
+  sections         DailySection[]
+  reviewWhatDidIDo String         @default("")
+  reviewMovedFwd   String         @default("")
+  reviewDidntWork  String         @default("")
+  reviewFocusTmw   String         @default("")
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([date])
+}
+
+model DailySection {
+  id          String      @id @default(uuid())
+  title       String
+  dailyPlanId String
+  dailyPlan   DailyPlan   @relation(fields: [dailyPlanId], references: [id], onDelete: Cascade)
+  tasks       DailyTask[]
+}
+
+model DailyTask {
+  id             String       @id @default(uuid())
+  text           String
+  completed      Boolean      @default(false)
+  frequency      String?
+  dailySectionId String
+  dailySection   DailySection @relation(fields: [dailySectionId], references: [id], onDelete: Cascade)
+}
+
+// Recurring Tasks
+model RecurringTask {
+  id        String   @id @default(uuid())
+  text      String
+  frequency String // "daily", "weekly", "monthly", "yearly"
+  time      String? // HH:MM
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Notes
+model Note {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

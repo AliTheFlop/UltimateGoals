@@ -120,14 +120,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load from localStorage on mount
+  // Load from API on mount
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
+    async function fetchData() {
       try {
-        const parsed = JSON.parse(saved);
+        const res = await fetch("/api/data");
+        if (!res.ok) throw new Error("Failed to fetch");
+        const parsed = await res.json();
+        
         // Ensure years are loaded or default
-        const keys = Object.keys(parsed);
         if (parsed.planningYears && parsed.planningYears.length > 0) {
              setPlanningYears(parsed.planningYears);
         } else {
@@ -143,35 +144,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setRecurringTasks(parsed.recurringTasks || []);
         setNotes(parsed.notes || []);
       } catch (e) {
-        console.error("Failed to parse data", e);
+        console.error("Failed to load data", e);
+      } finally {
+        setIsLoaded(true);
       }
-    } else {
-         // Default Years
-         const currentYear = new Date().getFullYear();
-         setPlanningYears([currentYear, currentYear + 1, currentYear + 2]);
-
-         // Migration V1.2
-         const v1_2 = localStorage.getItem("ultimate_goals_data_v1.2");
-         if (v1_2) {
-             try {
-                 const parsed = JSON.parse(v1_2);
-                 setUltimateGoal(parsed.ultimateGoal || "");
-                 setYearlyGoals(parsed.yearlyGoals || []);
-                 setMonthlyGoals(parsed.monthlyGoals || []);
-                 setWeeklyPlans(parsed.weeklyPlans || []);
-                 setDailyPlans(parsed.dailyPlans || []);
-                 // recurring tasks structure compatible enough (extra fields optional)
-                 setRecurringTasks(parsed.recurringTasks || []);
-                 setNotes(parsed.notes || []);
-             } catch(e) {}
-         }
     }
-    setIsLoaded(true);
+    fetchData();
   }, []);
 
-  // Save to localStorage on change
+  // Save to API on change (Debounced)
   useEffect(() => {
     if (!isLoaded) return;
+
     const data = {
       planningYears,
       ultimateGoal,
@@ -182,7 +166,21 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       recurringTasks,
       notes,
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        await fetch("/api/data", {
+           method: "POST",
+           headers: { "Content-Type": "application/json" },
+           body: JSON.stringify(data)
+        });
+        console.log("Auto-saved to DB");
+      } catch (e) {
+        console.error("Failed to save", e);
+      }
+    }, 2000); // 2 second debounce
+
+    return () => clearTimeout(timeoutId);
   }, [planningYears, ultimateGoal, yearlyGoals, monthlyGoals, weeklyPlans, dailyPlans, recurringTasks, notes, isLoaded]);
 
   if (!isLoaded) {
