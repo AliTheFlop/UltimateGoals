@@ -95,7 +95,7 @@ export default function WeeklyPlanningPage() {
         <div>
           <span className="text-sm font-medium text-amber-500 tracking-wider uppercase">Weekly Plan</span>
           <div className="flex items-center gap-4 mt-2">
-            <h1 className="text-3xl md:text-4xl font-bold text-zinc-100 min-w-[300px]">
+            <h1 className="text-xl md:text-3xl font-bold text-zinc-100 min-w-[200px] md:min-w-[300px]">
               {formatDate(weekStart)} - {formatDate(weekEnd)}
             </h1>
             <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800">
@@ -124,7 +124,7 @@ export default function WeeklyPlanningPage() {
                 value={plan?.bigGoal || ""}
                 onChange={(e) => updateBigGoal(e.target.value)}
                 placeholder="The single most important thing this week..."
-                className="w-full bg-transparent text-2xl font-bold text-zinc-100 placeholder:text-zinc-700 outline-none resize-none"
+                className="w-full bg-transparent text-lg md:text-2xl font-bold text-zinc-100 placeholder:text-zinc-700 outline-none resize-none"
                 rows={2}
             />
         </section>

@@ -5,7 +5,7 @@ import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
-export function AutoSaveIndicator() {
+export default function AutoSaveIndicator() {
   const { saveStatus } = useData();
   const [showSaved, setShowSaved] = useState(false);
 

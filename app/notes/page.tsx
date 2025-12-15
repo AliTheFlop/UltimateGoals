@@ -32,7 +32,7 @@ export default function NotesPage() {
       <header className="flex items-end justify-between">
         <div>
           <span className="text-sm font-medium text-amber-500 tracking-wider uppercase">Thoughts</span>
-          <h1 className="text-4xl font-bold mt-2 text-zinc-100">
+          <h1 className="text-2xl md:text-4xl font-bold mt-2 text-zinc-100">
             Notes & Ideas
           </h1>
         </div>

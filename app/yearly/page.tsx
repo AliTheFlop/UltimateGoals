@@ -78,7 +78,7 @@ export default function YearlyGoalsPage() {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <span className="text-sm font-medium text-amber-500 tracking-wider uppercase">Yearly Strategy</span>
-          <h1 className="text-4xl font-bold mt-2 text-zinc-100">
+          <h1 className="text-2xl md:text-4xl font-bold mt-2 text-zinc-100">
              Future Goals
           </h1>
           <p className="text-zinc-500 mt-2">
@@ -88,7 +88,7 @@ export default function YearlyGoalsPage() {
         
         <button
           onClick={() => setIsAdding(true)}
-          className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 px-4 py-2 rounded-lg font-medium transition-colors"
+          className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add S.M.A.R.T Goal
@@ -102,7 +102,7 @@ export default function YearlyGoalsPage() {
                   <button
                     onClick={() => setSelectedYear(year)}
                     className={cn(
-                        "px-6 py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
+                        "px-4 py-2 md:px-6 md:py-3 text-sm font-bold border-b-2 transition-colors whitespace-nowrap",
                         selectedYear === year 
                             ? "border-amber-500 text-zinc-100" 
                             : "border-transparent text-zinc-600 hover:text-zinc-400"

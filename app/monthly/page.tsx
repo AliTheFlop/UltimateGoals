@@ -51,7 +51,7 @@ export default function MonthlyGoalsPage() {
         <div>
           <span className="text-sm font-medium text-amber-500 tracking-wider uppercase">Monthly Focus</span>
           <div className="flex items-center gap-4 mt-2">
-            <h1 className="text-4xl font-bold text-zinc-100 min-w-[250px]">
+            <h1 className="text-xl md:text-4xl font-bold text-zinc-100 min-w-[200px] md:min-w-[250px]">
               {monthName} {currentYear}
             </h1>
             <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800">
@@ -69,7 +69,7 @@ export default function MonthlyGoalsPage() {
         </div>
         <button
           onClick={addGoal}
-          className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 px-4 py-2 rounded-lg font-medium transition-colors"
+          className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 px-3 py-1.5 md:px-4 md:py-2 rounded-lg font-medium transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Goal

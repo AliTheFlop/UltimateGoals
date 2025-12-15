@@ -211,7 +211,7 @@ export default function DailyPage() {
           </div>
           
           <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold text-zinc-100 min-w-[250px]">
+            <h1 className="text-xl md:text-3xl font-bold text-zinc-100 min-w-[200px] md:min-w-[250px]">
               {formatDate(currentDate)}
             </h1>
             <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800">
@@ -246,7 +246,7 @@ export default function DailyPage() {
                         <input 
                             value={section.title}
                             onChange={(e) => updateSectionTitle(section.id, e.target.value)}
-                            className="bg-transparent text-xl font-semibold text-zinc-200 outline-none focus:border-b border-amber-500 placeholder:text-zinc-600 w-full mr-4"
+                            className="bg-transparent text-lg md:text-xl font-semibold text-zinc-200 outline-none focus:border-b border-amber-500 placeholder:text-zinc-600 w-full mr-4"
                             placeholder="Section Title..."
                         />
                         <button onClick={() => addTask(section.id)} className="flex items-center gap-2 text-sm text-zinc-400 hover:text-amber-500 transition-colors shrink-0">

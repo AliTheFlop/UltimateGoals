@@ -3,20 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { signOut } from "next-auth/react";
 import {
   Target,
   Calendar,
   CalendarDays,
   List,
   Sun,
-  BookOpen,
   FileText,
+  LogOut // Keep this one
 } from "lucide-react";
-
-import { signOut } from "next-auth/react";
-import { LogOut } from "lucide-react";
-
-// ... existing code ...
 
 const navItems = [
   { href: "/ultimate-goal", label: "Ultimate Goal", icon: Target },
@@ -24,11 +20,11 @@ const navItems = [
   { href: "/monthly", label: "Monthly Goals", icon: CalendarDays },
   { href: "/weekly", label: "Weekly Plan", icon: List },
   { href: "/daily", label: "Daily Plan", icon: Sun },
-  //{ href: "/review", label: "Review", icon: BookOpen }, // can be part of daily? Or separate. Plan says Review Interface.
+  //{ href: "/review", label: "Review", icon: BookOpen }, 
   { href: "/notes", label: "Notes", icon: FileText },
 ];
 
-export function Sidebar() {
+export default function Sidebar() {
   const pathname = usePathname();
 
   return (
@@ -65,7 +61,7 @@ export function Sidebar() {
            <p className="text-xs text-zinc-500 text-center">Focus on the essential.</p>
         </div>
         <button
-          onClick={() => signOut()}
+          onClick={() => signOut({ callbackUrl: "/login" })}
           className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-zinc-500 hover:text-red-400 hover:bg-zinc-900/50 transition-colors"
         >
           <LogOut className="w-5 h-5" />
