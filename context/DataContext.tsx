@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 
 // --- Types ---
@@ -124,6 +124,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const isFirstAfterLoad = useRef(true);
   
   const { status } = useSession();
 
@@ -218,6 +219,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   // Save to API on change (Debounced)
   useEffect(() => {
     if (!isLoaded || status !== "authenticated") return;
+
+    if (isFirstAfterLoad.current) {
+      isFirstAfterLoad.current = false;
+      return;
+    }
 
     // Data has changed, set to pending immediately
     setSaveStatus("pending");
