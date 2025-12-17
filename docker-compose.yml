@@ -6,3 +6,8 @@ services:
       - "3000:3000"
     env_file:
       - .env
+    environment:
+      - DATABASE_URL=file:/app/data/dev.db
+    volumes:
+      - ./docker-data:/app/data
+    command: sh -c "npx prisma migrate deploy && node server.js"
