@@ -4,7 +4,7 @@ set -e
 
 # Run migrations
 echo "Runnning Prisma Migrations..."
-npx prisma migrate deploy
+prisma migrate deploy
 
 # Start the application
 echo "Starting Next.js Server..."

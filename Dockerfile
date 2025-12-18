@@ -41,6 +41,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Install OpenSSL for production runtime
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
+# Install Prisma CLI globally to avoid npx downloading incompatible versions at runtime
+RUN npm install -g prisma@5.22.0
+
 RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
 

@@ -1,9 +1,13 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import codect from "bcryptjs"; // Changed import to avoid namespace collision issues if any, usually import { compare } is fine but let's be safe or just use destructured.
 import { compare } from "bcryptjs";
-import prisma from "@/lib/prisma";
+import connectToDatabase from "@/lib/mongodb";
+import { User } from "@/models";
+import { authConfig } from "@/auth.config";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -15,8 +19,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { username: credentials.username as string },
+        await connectToDatabase();
+
+        const user = await User.findOne({
+          username: credentials.username as string,
         });
 
         if (!user) {
@@ -33,36 +39,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         return {
-          id: user.id,
+          id: user._id.toString(),
           name: user.name,
           username: user.username,
         };
       },
     }),
   ],
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        // @ts-ignore
-        token.username = user.username;
-      }
-      return token;
-    },
-    session({ session, token }) {
-      if (session.user) {
-        // @ts-ignore
-        session.user.id = token.id as string;
-        // @ts-ignore
-        session.user.username = token.username as string;
-      }
-      return session;
-    },
-  },
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  },
 });
+
