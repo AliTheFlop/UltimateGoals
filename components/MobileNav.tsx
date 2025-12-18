@@ -11,6 +11,7 @@ import {
   List,
   Sun,
   FileText,
+  User,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -21,6 +22,7 @@ const navItems = [
   { href: "/weekly", label: "Weekly Plan", icon: List },
   { href: "/daily", label: "Daily Plan", icon: Sun },
   { href: "/notes", label: "Notes", icon: FileText },
+  { href: "/profile", label: "Profile", icon: User },
 ];
 
 export default function MobileNav() {
