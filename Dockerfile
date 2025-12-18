@@ -48,9 +48,10 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
 
-# Ensure proper permissions
+# Ensure proper permissions and fix line endings (CRLF -> LF)
 RUN mkdir -p /app/data .next \
  && chown -R nextjs:nodejs /app \
+ && sed -i 's/\r$//' ./entrypoint.sh \
  && chmod +x ./entrypoint.sh
 
 # Copy standalone build
