@@ -236,7 +236,7 @@ export default function DailyPage() {
                 <section 
                     key={section.id} 
                     className={cn(
-                        "bg-zinc-900/20 rounded-xl p-4 border border-zinc-800/50 min-h-[300px] flex flex-col transition-colors",
+                        "bg-zinc-900/20 rounded-xl p-3 border border-zinc-800/50 min-h-[300px] flex flex-col transition-colors",
                          draggedItem && draggedItem.sectionId !== section.id ? "bg-zinc-900/40 border-dashed border-zinc-700" : ""
                     )}
                     onDragOver={(e) => handleDragOver(e, section.id)}
