@@ -1,20 +1,32 @@
+# ---------- deps ----------
 FROM node:24-slim AS deps
 WORKDIR /app
+
+# Prisma needs OpenSSL at build time
+RUN apt-get update -y && apt-get install -y openssl
 
 COPY package.json package-lock.json* ./
 RUN npm ci
 
+# ---------- builder ----------
 FROM node:24-slim AS builder
 WORKDIR /app
+
+# Prisma needs OpenSSL here too
+RUN apt-get update -y && apt-get install -y openssl
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Build-time env ONLY for prisma generate
+# Build-time DB path ONLY for prisma generate
 ENV DATABASE_URL="file:/app/data/dev.db"
+
+# Generate Prisma client with correct OpenSSL target
 RUN npx prisma generate
+
 RUN npm run build
 
+# ---------- runner ----------
 FROM node:24-slim AS runner
 WORKDIR /app
 
