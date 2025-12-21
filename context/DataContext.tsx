@@ -29,6 +29,7 @@ export interface Task {
   text: string;
   completed: boolean;
   frequency?: RecurrenceFrequency; // Optional tag for recurring tasks
+  notes?: string;
 }
 
 export interface WeeklyPlan {
@@ -125,7 +126,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const isFirstAfterLoad = useRef(true);
-  
+
   const { status } = useSession();
 
   // Load from API on Auth Success
@@ -133,59 +134,59 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     if (status === "loading") return;
 
     if (status === "unauthenticated") {
-        // Allow app to render (login page) but with empty data
-        setSaveStatus("idle");
-        setIsLoaded(true);
-        return;
+      // Allow app to render (login page) but with empty data
+      setSaveStatus("idle");
+      setIsLoaded(true);
+      return;
     }
 
     // Status is authenticated
     async function fetchData() {
       try {
         const res = await fetch("/api/data");
-        
+
         let parsed: any = {};
         let shouldUseLocalStorage = false;
 
         if (res.ok) {
-           parsed = await res.json();
-           
-           // CHECK EMPTY DB SCENARIO: 
-           const dbIsEmpty = 
-             (!parsed.yearlyGoals || parsed.yearlyGoals.length === 0) &&
-             (!parsed.weeklyPlans || parsed.weeklyPlans.length === 0) &&
-             (!parsed.dailyPlans || parsed.dailyPlans.length === 0);
+          parsed = await res.json();
 
-           const localSaved = localStorage.getItem(STORAGE_KEY);
-           if (dbIsEmpty && localSaved) {
-              console.log("Database empty. Recovering from LocalStorage...");
-              try {
-                parsed = JSON.parse(localSaved);
-                shouldUseLocalStorage = true;
-                // Since we just loaded from LocalStorage (dirty state), we might want to trigger save immediately?
-                // But let's just let the normal save logic handle changes if any.
-                // Actually, if we recover, we have data. Ideally we save it back to DB.
-                // We'll mark it as loaded, which triggers the 'useEffect' below because values changed. 
-                // Wait, values set here won't trigger change if we set them before isLoaded is true?
-                // No, dependency array will see change. But isLoaded false prevents save.
-                // Then isLoaded true. Effect runs.
-              } catch (e) {
-                console.error("Local recovery failed", e);
-              }
-           }
+          // CHECK EMPTY DB SCENARIO: 
+          const dbIsEmpty =
+            (!parsed.yearlyGoals || parsed.yearlyGoals.length === 0) &&
+            (!parsed.weeklyPlans || parsed.weeklyPlans.length === 0) &&
+            (!parsed.dailyPlans || parsed.dailyPlans.length === 0);
+
+          const localSaved = localStorage.getItem(STORAGE_KEY);
+          if (dbIsEmpty && localSaved) {
+            console.log("Database empty. Recovering from LocalStorage...");
+            try {
+              parsed = JSON.parse(localSaved);
+              shouldUseLocalStorage = true;
+              // Since we just loaded from LocalStorage (dirty state), we might want to trigger save immediately?
+              // But let's just let the normal save logic handle changes if any.
+              // Actually, if we recover, we have data. Ideally we save it back to DB.
+              // We'll mark it as loaded, which triggers the 'useEffect' below because values changed. 
+              // Wait, values set here won't trigger change if we set them before isLoaded is true?
+              // No, dependency array will see change. But isLoaded false prevents save.
+              // Then isLoaded true. Effect runs.
+            } catch (e) {
+              console.error("Local recovery failed", e);
+            }
+          }
         } else {
-           console.error("API Fetch failed", res.status);
-           setIsLoaded(true); 
-           return; 
+          console.error("API Fetch failed", res.status);
+          setIsLoaded(true);
+          return;
         }
-        
+
         if (parsed.planningYears && parsed.planningYears.length > 0) {
-             setPlanningYears(parsed.planningYears);
+          setPlanningYears(parsed.planningYears);
         } else {
-             const currentYear = new Date().getFullYear();
-             setPlanningYears([currentYear, currentYear + 1, currentYear + 2]);
+          const currentYear = new Date().getFullYear();
+          setPlanningYears([currentYear, currentYear + 1, currentYear + 2]);
         }
-        
+
         setUltimateGoal(parsed.ultimateGoal || "");
         setYearlyGoals(parsed.yearlyGoals || []);
         setMonthlyGoals(parsed.monthlyGoals || []);
@@ -194,10 +195,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setRecurringTasks(parsed.recurringTasks || []);
         setNotes(parsed.notes || []);
 
-        setIsLoaded(true); 
+        setIsLoaded(true);
       } catch (e) {
         console.error("Failed to load data", e);
-        setIsLoaded(true); 
+        setIsLoaded(true);
       }
     }
     fetchData();
@@ -243,9 +244,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setSaveStatus("saving");
       try {
         await fetch("/api/data", {
-           method: "POST",
-           headers: { "Content-Type": "application/json" },
-           body: JSON.stringify(data)
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
         });
         console.log("Auto-saved to DB");
         setSaveStatus("idle");

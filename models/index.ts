@@ -40,7 +40,7 @@ const monthlyGoalSchema = new Schema({
 // --- Weekly Plan Schema ---
 const weeklyTaskSchema = new Schema({
   id: { type: String, required: true },
-  text: { type: String, required: true },
+  text: { type: String, default: '' },
   completed: { type: Boolean, default: false },
   frequency: { type: String }, // "daily", "weekly", etc.
 });
@@ -59,9 +59,10 @@ weeklyPlanSchema.index({ userId: 1, weekStart: 1 }, { unique: true });
 // --- Daily Plan Schema ---
 const dailyTaskSchema = new Schema({
   id: { type: String, required: true },
-  text: { type: String, required: true },
+  text: { type: String, default: '' },
   completed: { type: Boolean, default: false },
   frequency: { type: String },
+  notes: { type: String, default: '' },
 });
 
 const dailySectionSchema = new Schema({
@@ -87,7 +88,7 @@ dailyPlanSchema.index({ userId: 1, date: 1 }, { unique: true });
 const recurringTaskSchema = new Schema({
   id: { type: String, required: true },
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  text: { type: String, required: true },
+  text: { type: String, default: '' },
   frequency: { type: String, required: true }, // "daily", "weekly", "monthly", "yearly"
   time: { type: String }, // HH:MM
 }, { timestamps: true });
