@@ -217,7 +217,58 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [saveStatus]);
 
-  // Save to API on change (Debounced)
+  // -- Auto-Save Logic (Sequential Queue) --
+  const isSaving = useRef(false);
+  const pendingSave = useRef(false);
+
+  // Keep refs to latest data so the async saver always grabs current state
+  const dataRef = useRef({
+    planningYears, ultimateGoal, yearlyGoals, monthlyGoals,
+    weeklyPlans, dailyPlans, recurringTasks, notes
+  });
+
+  useEffect(() => {
+    dataRef.current = {
+      planningYears, ultimateGoal, yearlyGoals, monthlyGoals,
+      weeklyPlans, dailyPlans, recurringTasks, notes
+    };
+  }, [planningYears, ultimateGoal, yearlyGoals, monthlyGoals, weeklyPlans, dailyPlans, recurringTasks, notes]);
+
+  // The simplified saver function
+  const executeSave = async () => {
+    if (isSaving.current) {
+      pendingSave.current = true;
+      return;
+    }
+
+    isSaving.current = true;
+    pendingSave.current = false;
+    setSaveStatus("saving");
+
+    try {
+      // Send LATEST data (ref)
+      const payload = dataRef.current;
+      await fetch("/api/data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      console.log("Auto-saved to DB");
+      setSaveStatus("idle");
+    } catch (e) {
+      console.error("Failed to save", e);
+      setSaveStatus("error");
+    } finally {
+      isSaving.current = false;
+      // If changes happened while we were saving, go again immediately
+      if (pendingSave.current) {
+        // Small delay to prevent tight loop if error
+        setTimeout(executeSave, 500);
+      }
+    }
+  };
+
+  // Debounced trigger
   useEffect(() => {
     if (!isLoaded || status !== "authenticated") return;
 
@@ -226,35 +277,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // Data has changed, set to pending immediately
     setSaveStatus("pending");
 
-    const data = {
-      planningYears,
-      ultimateGoal,
-      yearlyGoals,
-      monthlyGoals,
-      weeklyPlans,
-      dailyPlans,
-      recurringTasks,
-      notes,
-    };
+    // If we are already saving, marking pendingSave=true (inside executeSave logic conceptually) 
+    // is enough, but we want the debounce to still apply so we don't spam 'pendingSave' checks.
+    // Actually, we just want to call executeSave() after 2s of silence.
+    // If executeSave finds isSaving=true, it sets pending=true.
 
-    const timeoutId = setTimeout(async () => {
-      setSaveStatus("saving");
-      try {
-        await fetch("/api/data", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        console.log("Auto-saved to DB");
-        setSaveStatus("idle");
-      } catch (e) {
-        console.error("Failed to save", e);
-        setSaveStatus("error");
-      }
-    }, 2000); // 2 second debounce
+    const timeoutId = setTimeout(() => {
+      executeSave();
+    }, 2000);
 
     return () => clearTimeout(timeoutId);
   }, [planningYears, ultimateGoal, yearlyGoals, monthlyGoals, weeklyPlans, dailyPlans, recurringTasks, notes, isLoaded]);
