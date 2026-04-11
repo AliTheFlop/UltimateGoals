@@ -1,7 +1,7 @@
 "use client";
 
 import { useData, MonthlyGoal } from "@/context/DataContext";
-import { GoalItem } from "@/components/GoalItem";
+import { MonthlyGoalCard } from "@/components/MonthlyGoalCard";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
@@ -76,17 +76,18 @@ export default function MonthlyGoalsPage() {
         </button>
       </header>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         {displayedGoals.length === 0 && (
-          <div className="text-center py-20 border border-dashed border-zinc-800 rounded-xl">
-            <p className="text-zinc-600">No focus set for {monthName} yet.</p>
-            <button onClick={addGoal} className="text-amber-500 hover:underline mt-2 text-sm">Create one now</button>
+          <div className="col-span-full text-center py-32 border border-dashed border-zinc-800 rounded-2xl">
+            <p className="text-zinc-600 text-lg">No focus set for {monthName} yet.</p>
+            <button onClick={addGoal} className="text-amber-500 hover:text-amber-400 transition-colors mt-3 font-medium">Create one now</button>
           </div>
         )}
         
         {displayedGoals.map((goal) => (
-          <GoalItem
+          <MonthlyGoalCard
             key={goal.id}
+            id={goal.id}
             text={goal.text}
             completed={goal.completed}
             onToggle={() => updateGoal(goal.id, { completed: !goal.completed })}

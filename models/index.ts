@@ -31,7 +31,7 @@ const yearlyGoalSchema = new Schema({
 const monthlyGoalSchema = new Schema({
   id: { type: String, required: true }, // UUID
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  text: { type: String, required: true },
+  text: { type: String, default: '' },
   month: { type: Number, required: true }, // 0-11
   year: { type: Number, required: true },
   completed: { type: Boolean, default: false },
