@@ -126,6 +126,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const isFirstAfterLoad = useRef(true);
+  const lastSyncedDataRef = useRef<any>(null);
 
   const { status } = useSession();
 
@@ -195,6 +196,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setRecurringTasks(parsed.recurringTasks || []);
         setNotes(parsed.notes || []);
 
+        // Store baseline for diffing overrides
+        lastSyncedDataRef.current = {
+            planningYears: parsed.planningYears || [],
+            ultimateGoal: parsed.ultimateGoal || "",
+            yearlyGoals: parsed.yearlyGoals || [],
+            monthlyGoals: parsed.monthlyGoals || [],
+            weeklyPlans: parsed.weeklyPlans || [],
+            dailyPlans: parsed.dailyPlans || [],
+            recurringTasks: parsed.recurringTasks || [],
+            notes: parsed.notes || [],
+        };
+
         setIsLoaded(true);
       } catch (e) {
         console.error("Failed to load data", e);
@@ -234,6 +247,32 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     };
   }, [planningYears, ultimateGoal, yearlyGoals, monthlyGoals, weeklyPlans, dailyPlans, recurringTasks, notes]);
 
+  // Helper to diff collections for micro-payloads
+  const getCollectionDiff = (current: any[], last: any[]) => {
+      const lastMap = new Map((last || []).map(x => [x.id, x]));
+      const currentMap = new Map((current || []).map(x => [x.id, x]));
+
+      const updates: any[] = [];
+      const deletes: string[] = [];
+
+      // Find updates (new or modified)
+      for (const [id, item] of currentMap.entries()) {
+          const lastItem = lastMap.get(id);
+          if (!lastItem || JSON.stringify(item) !== JSON.stringify(lastItem)) {
+              updates.push(item);
+          }
+      }
+
+      // Find deletes
+      for (const id of lastMap.keys()) {
+          if (!currentMap.has(id)) {
+              deletes.push(id);
+          }
+      }
+
+      return { updates, deletes };
+  };
+
   // The simplified saver function
   const executeSave = async () => {
     if (isSaving.current) {
@@ -246,14 +285,51 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setSaveStatus("saving");
 
     try {
-      // Send LATEST data (ref)
-      const payload = dataRef.current;
+      const current = dataRef.current;
+      const last = lastSyncedDataRef.current || current;
+
+      const payload = {
+         isDiff: true,
+         settings: {
+            ultimateGoal: current.ultimateGoal,
+            planningYears: current.planningYears
+         },
+         updates: {} as Record<string, any[]>,
+         deletes: {} as Record<string, string[]>
+      };
+
+      const collections = ['yearlyGoals', 'monthlyGoals', 'weeklyPlans', 'dailyPlans', 'recurringTasks', 'notes'];
+      
+      let hasChanges = false;
+      for (const key of collections) {
+          const diff = getCollectionDiff((current as any)[key], (last as any)[key] || []);
+          payload.updates[key] = diff.updates;
+          payload.deletes[key] = diff.deletes;
+          if (diff.updates.length > 0 || diff.deletes.length > 0) hasChanges = true;
+      }
+      
+      if (current.ultimateGoal !== last.ultimateGoal || JSON.stringify(current.planningYears) !== JSON.stringify(last.planningYears)) {
+          hasChanges = true;
+      }
+
+      if (!hasChanges) {
+          setSaveStatus("idle");
+          isSaving.current = false;
+          return;
+      }
+
+      // To debug payload size during dev:
+      const payloadString = JSON.stringify(payload);
+      console.log(`Uploading Diff Payload: ${(new Blob([payloadString]).size / 1024).toFixed(2)} KB`);
+
       await fetch("/api/data", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: payloadString
       });
-      console.log("Auto-saved to DB");
+
+      console.log("Auto-saved diff to DB");
+      lastSyncedDataRef.current = JSON.parse(JSON.stringify(current)); // Update baseline
       setSaveStatus("idle");
     } catch (e) {
       console.error("Failed to save", e);
