@@ -1,7 +1,8 @@
 "use client";
 
 import { useData, WeeklyPlan, Task } from "@/context/DataContext";
-import { GoalItem } from "@/components/GoalItem";
+import { TaskCard } from "@/components/TaskCard";
+import { TaskModal } from "@/components/TaskModal";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState, useMemo } from "react";
 
@@ -20,8 +21,9 @@ function formatDate(d: Date) {
 }
 
 export default function WeeklyPlanningPage() {
-  const { weeklyPlans, setWeeklyPlans } = useData();
+  const { weeklyPlans, setWeeklyPlans, recurringTasks, setRecurringTasks } = useData();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
   const weekStart = useMemo(() => getStartOfWeek(currentDate), [currentDate]);
   const weekEnd = new Date(weekStart);
@@ -67,12 +69,14 @@ export default function WeeklyPlanningPage() {
       bigGoal: "",
       tasks: [],
     };
+    const newTaskId = crypto.randomUUID();
     const newTask: Task = {
-      id: crypto.randomUUID(),
+      id: newTaskId,
       text: "",
       completed: false,
     };
     savePlan({ ...newPlan, tasks: [...newPlan.tasks, newTask] });
+    setEditingTaskId(newTaskId);
   };
 
   const updateTask = (taskId: string, updates: Partial<Task>) => {
@@ -87,6 +91,39 @@ export default function WeeklyPlanningPage() {
     if (!plan) return;
     const newTasks = plan.tasks.filter((t) => t.id !== taskId);
     savePlan({ ...plan, tasks: newTasks });
+  };
+
+  const handleFrequencyChange = (taskId: string, newFreq: "daily" | undefined) => {
+    // 1. Update local task
+    if (!plan) return;
+    const task = plan.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    const newTasks = plan.tasks.map(t => t.id === taskId ? { ...t, frequency: newFreq } : t);
+    savePlan({ ...plan, tasks: newTasks });
+
+    // 2. Sync with Global Recurring List
+    const existingRecurringIndex = recurringTasks.findIndex(rt => rt.text === task.text);
+
+    let newRecurringList = [...recurringTasks];
+
+    if (newFreq) {
+        if (existingRecurringIndex >= 0) {
+            newRecurringList[existingRecurringIndex] = { ...newRecurringList[existingRecurringIndex], frequency: newFreq };
+        } else {
+            newRecurringList.push({
+                id: crypto.randomUUID(),
+                text: task.text,
+                frequency: newFreq,
+                time: ""
+            });
+        }
+    } else {
+        if (existingRecurringIndex >= 0) {
+            newRecurringList = newRecurringList.filter((_, i) => i !== existingRecurringIndex);
+        }
+    }
+    setRecurringTasks(newRecurringList);
   };
 
   return (
@@ -147,16 +184,35 @@ export default function WeeklyPlanningPage() {
                      <p className="text-zinc-600 text-sm italic">Add tasks that help you achieve the Big Goal.</p>
                 )}
                 {plan?.tasks.map((task) => (
-                    <GoalItem
+                    <TaskCard
                         key={task.id}
                         text={task.text}
                         completed={task.completed}
+                        isDaily={task.frequency === "daily"}
+                        hasNotes={!!task.notes}
                         onToggle={() => updateTask(task.id, { completed: !task.completed })}
-                        onChange={(text) => updateTask(task.id, { text })}
-                        onDelete={() => deleteTask(task.id)}
-                        placeholder="Task..."
+                        onClick={() => setEditingTaskId(task.id)}
                     />
                 ))}
+
+                <TaskModal 
+                    isOpen={!!editingTaskId}
+                    task={editingTaskId ? plan?.tasks.find(t => t.id === editingTaskId) || null : null}
+                    onClose={() => setEditingTaskId(null)}
+                    onSave={(updates) => {
+                        if (!editingTaskId) return;
+                        updateTask(editingTaskId, updates);
+                        if (updates.frequency !== undefined) {
+                            handleFrequencyChange(editingTaskId, updates.frequency as "daily" | undefined);
+                        }
+                    }}
+                    onDelete={() => {
+                        if (editingTaskId) {
+                            handleFrequencyChange(editingTaskId, undefined);
+                            deleteTask(editingTaskId);
+                        }
+                    }}
+                />
             </div>
         </section>
       </div>

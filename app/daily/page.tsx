@@ -1,8 +1,9 @@
 "use client";
 
 import { useData, DailyPlan, Task, Review, TaskSection, RecurringTask } from "@/context/DataContext";
-import { GoalItem } from "@/components/GoalItem";
-import { ChevronLeft, ChevronRight, Plus, Sun, Moon, Repeat, Trash2, X, GripVertical, Clock, CalendarClock } from "lucide-react";
+import { TaskCard } from "@/components/TaskCard";
+import { TaskModal } from "@/components/TaskModal";
+import { ChevronLeft, ChevronRight, Plus, Sun, Moon, GripVertical, Clock, CalendarClock } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
@@ -14,6 +15,7 @@ export default function DailyPage() {
     const { dailyPlans, setDailyPlans, recurringTasks, setRecurringTasks } = useData();
     const [currentDate, setCurrentDate] = useState(new Date());
     const [mode, setMode] = useState<"plan" | "review">("plan");
+    const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
     const dateKey = currentDate.toISOString().split("T")[0]; // YYYY-MM-DD
 
@@ -93,8 +95,10 @@ export default function DailyPage() {
     };
 
     const addTask = () => {
-        const newTask: Task = { id: crypto.randomUUID(), text: "", completed: false, notes: "" };
+        const newTaskId = crypto.randomUUID();
+        const newTask: Task = { id: newTaskId, text: "", completed: false, notes: "" };
         saveTasks([...allTasks, newTask]);
+        setEditingTaskId(newTaskId);
     };
 
     const updateTask = (taskId: string, updates: Partial<Task>) => {
@@ -208,20 +212,35 @@ export default function DailyPage() {
                             </div>
                         )}
                         {allTasks.map((task) => (
-                            <GoalItem
+                            <TaskCard
                                 key={task.id}
                                 text={task.text}
                                 completed={task.completed}
-                                frequency={task.frequency}
-                                notes={task.notes}
-                                onToggle={() => updateTask(task.id, { completed: !task.completed })}
-                                onChange={(text) => updateTask(task.id, { text })}
-                                onNotesChange={(notes) => updateTask(task.id, { notes })}
-                                onFrequencyChange={(freq) => handleFrequencyChange(task.id, freq)}
-                                onDelete={() => deleteTask(task.id)}
-                                placeholder="What do you want to verify today?"
+                                isDaily={task.frequency === "daily"}
+                                hasNotes={!!task.notes}
+                                onToggle={(e) => updateTask(task.id, { completed: !task.completed })}
+                                onClick={() => setEditingTaskId(task.id)}
                             />
                         ))}
+
+                        <TaskModal 
+                            isOpen={!!editingTaskId}
+                            task={editingTaskId ? allTasks.find(t => t.id === editingTaskId) || null : null}
+                            onClose={() => setEditingTaskId(null)}
+                            onSave={(updates) => {
+                                if (!editingTaskId) return;
+                                updateTask(editingTaskId, updates);
+                                if (updates.frequency !== undefined) {
+                                    handleFrequencyChange(editingTaskId, updates.frequency as "daily" | undefined);
+                                }
+                            }}
+                            onDelete={() => {
+                                if (editingTaskId) {
+                                    handleFrequencyChange(editingTaskId, undefined);
+                                    deleteTask(editingTaskId);
+                                }
+                            }}
+                        />
 
                         <div className="pt-4 border-t border-zinc-800/50 mt-4 opacity-50 hover:opacity-100 transition-opacity flex justify-center">
                             <button onClick={addTask} className="text-zinc-600 hover:text-amber-500 flex items-center gap-2 text-sm font-medium">
