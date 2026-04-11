@@ -39,13 +39,14 @@ export function MonthlyGoalCard({
   return (
     <div
       className={cn(
-        "group relative flex flex-col p-5 rounded-2xl border-2 transition-all duration-300 min-h-[220px] shadow-sm",
+        "group relative flex flex-col p-5 rounded-2xl border-2 transition-all duration-300 min-h-[320px] shadow-sm",
         completed
           ? "bg-zinc-900/20 border-zinc-900 opacity-50 grayscale"
           : cn("bg-zinc-900/60", theme.border, theme.hoverBorder)
       )}
     >
       <textarea
+        rows={8}
         value={text}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}

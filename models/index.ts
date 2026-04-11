@@ -97,8 +97,8 @@ const recurringTaskSchema = new Schema({
 const noteSchema = new Schema({
   id: { type: String, required: true },
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  title: { type: String, required: true },
-  content: { type: String, required: true },
+  title: { type: String, default: '' },
+  content: { type: String, default: '' },
 }, { timestamps: true });
 
 
