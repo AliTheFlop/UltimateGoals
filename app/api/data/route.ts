@@ -99,71 +99,68 @@ export async function POST(request: Request) {
     const data: IncomingData = await request.json();
     await connectToDatabase();
 
-    // Strategy: Wipe and Rewrite SCOPED TO USER
-    // Since we are not using transactions (standalone support), we'll do delete then insert.
-    // This has a tiny risk of data loss if insert fails after delete, but acceptable for this stage.
+    // Strategy: Safe Differential Sync (Bulk Write)
+    // Avoids database-wipe race conditions and data loss risks on timeouts.
+
     
-    // 1. User Settings
-    let settings = await UserSettings.findOne({ userId });
-    if (settings) {
-      settings.ultimateGoal = data.ultimateGoal || "";
-      settings.planningYears = JSON.stringify(data.planningYears || []);
-      await settings.save();
-    } else {
-      await UserSettings.create({
-        userId,
+    // 1. User Settings (Upsert)
+    await UserSettings.findOneAndUpdate(
+      { userId },
+      { 
         ultimateGoal: data.ultimateGoal || "",
-        planningYears: JSON.stringify(data.planningYears || []),
+        planningYears: JSON.stringify(data.planningYears || []) 
+      },
+      { upsert: true, new: true }
+    );
+
+    // Helper for simple bulk syncs
+    const syncCollection = async (Model: any, incomingData: any[] = []) => {
+      const incomingIds = incomingData.map(item => item.id);
+      const bulkOps: any[] = incomingData.map(item => ({
+        updateOne: {
+          filter: { id: item.id, userId },
+          update: { $set: { ...item, userId } },
+          upsert: true
+        }
+      }));
+
+      // Delete anything not in the new list
+      bulkOps.push({
+        deleteMany: {
+          filter: { userId, id: { $nin: incomingIds } }
+        }
       });
-    }
+      await Model.bulkWrite(bulkOps);
+    };
 
-    // 2. Yearly Goals
-    await YearlyGoal.deleteMany({ userId });
-    if (data.yearlyGoals?.length) {
-      await YearlyGoal.insertMany(data.yearlyGoals.map(g => ({ ...g, userId })));
-    }
+    // 2-6. Standard Collections
+    await syncCollection(YearlyGoal, data.yearlyGoals);
+    await syncCollection(MonthlyGoal, data.monthlyGoals);
+    await syncCollection(RecurringTask, data.recurringTasks);
+    await syncCollection(Note, data.notes);
+    await syncCollection(WeeklyPlan, data.weeklyPlans);
 
-    // 3. Monthly Goals
-    await MonthlyGoal.deleteMany({ userId });
-    if (data.monthlyGoals?.length) {
-      await MonthlyGoal.insertMany(data.monthlyGoals.map(g => ({ ...g, userId })));
-    }
-
-    // 4. Recurring Tasks
-    await RecurringTask.deleteMany({ userId });
-    if (data.recurringTasks?.length) {
-      await RecurringTask.insertMany(data.recurringTasks.map(t => ({ ...t, userId })));
-    }
-
-    // 5. Notes
-    await Note.deleteMany({ userId });
-    if (data.notes?.length) {
-      await Note.insertMany(data.notes.map(n => ({ ...n, userId })));
-    }
-
-    // 6. Weekly Plans
-    await WeeklyPlan.deleteMany({ userId });
-    if (data.weeklyPlans?.length) {
-      await WeeklyPlan.insertMany(data.weeklyPlans.map(p => ({
-        ...p,
-        userId,
-        tasks: p.tasks // Assuming p.tasks structure matches schema
-      })));
-    }
-
-    // 7. Daily Plans
-    await DailyPlan.deleteMany({ userId });
-    if (data.dailyPlans?.length) {
-       await DailyPlan.insertMany(data.dailyPlans.map(p => ({
-        ...p,
-        userId,
-        reviewWhatDidIDo: p.review?.whatDidIDo || "",
-        reviewMovedFwd: p.review?.whatMovedForward || "",
-        reviewDidntWork: p.review?.whatDidntWork || "",
-        reviewFocusTmw: p.review?.focusForTomorrow || "",
-        // sections and tasks nested structure should be passed automatically if keys match
-      })));
-    }
+    // 7. Daily Plans (Custom mapping)
+    const incomingDaily = data.dailyPlans || [];
+    const dailyIds = incomingDaily.map(p => p.id);
+    const dailyBulkOps: any[] = incomingDaily.map(p => ({
+        updateOne: {
+            filter: { id: p.id, userId },
+            update: { 
+                $set: { 
+                    ...p, 
+                    userId,
+                    reviewWhatDidIDo: p.review?.whatDidIDo || "",
+                    reviewMovedFwd: p.review?.whatMovedForward || "",
+                    reviewDidntWork: p.review?.whatDidntWork || "",
+                    reviewFocusTmw: p.review?.focusForTomorrow || "",
+                } 
+            },
+            upsert: true
+        }
+    }));
+    dailyBulkOps.push({ deleteMany: { filter: { userId, id: { $nin: dailyIds } } } });
+    await DailyPlan.bulkWrite(dailyBulkOps);
 
     return NextResponse.json({ success: true });
   } catch (error) {
