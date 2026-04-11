@@ -292,7 +292,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [planningYears, ultimateGoal, yearlyGoals, monthlyGoals, weeklyPlans, dailyPlans, recurringTasks, notes, isLoaded]);
 
   if (!isLoaded) {
-    return null;
+    return (
+      <div className="flex flex-col items-center justify-center h-screen w-screen bg-zinc-950">
+        <div className="w-12 h-12 border-4 border-zinc-800 border-t-amber-500 rounded-full animate-spin mb-4"></div>
+        <div className="text-zinc-500 text-sm font-bold uppercase tracking-widest animate-pulse">Loading Workspace</div>
+      </div>
+    );
   }
 
   return (
