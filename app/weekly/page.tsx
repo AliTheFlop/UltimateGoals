@@ -5,16 +5,9 @@ import { TaskCard } from "@/components/TaskCard";
 import { TaskModal } from "@/components/TaskModal";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState, useMemo } from "react";
+import { getLocalDateString, getStartOfWeekDate, getStartOfWeekString } from "@/lib/utils";
 
-// Helper to get Monday of the current week
-function getStartOfWeek(d: Date) {
-  const date = new Date(d);
-  const day = date.getDay();
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-  date.setDate(diff);
-  date.setHours(0, 0, 0, 0);
-  return date;
-}
+
 
 function formatDate(d: Date) {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -25,11 +18,11 @@ export default function WeeklyPlanningPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
-  const weekStart = useMemo(() => getStartOfWeek(currentDate), [currentDate]);
+  const weekStart = useMemo(() => getStartOfWeekDate(currentDate), [currentDate]);
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
 
-  const weekKey = weekStart.toISOString().split("T")[0]; // YYYY-MM-DD
+  const weekKey = getStartOfWeekString(currentDate); // YYYY-MM-DD
 
   // Find existing plan or use default empty state (don't save until edit?)
   // Actually easier to just find.

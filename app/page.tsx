@@ -4,6 +4,7 @@ import { useData } from "@/context/DataContext";
 import Link from "next/link";
 import { ArrowRight, Target, List, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
+import { getLocalDateString, getStartOfWeekString } from "@/lib/utils";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -12,14 +13,7 @@ function getGreeting() {
   return "Good Evening";
 }
 
-function getStartOfWeek(d: Date) {
-  const date = new Date(d);
-  const day = date.getDay();
-  const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-  date.setDate(diff);
-  date.setHours(0, 0, 0, 0);
-  return date;
-}
+
 
 export default function Home() {
   const { ultimateGoal, weeklyPlans, dailyPlans } = useData();
@@ -31,8 +25,8 @@ export default function Home() {
   }, []);
 
   // Get current data
-  const weekStart = getStartOfWeek(date).toISOString().split("T")[0];
-  const todayKey = date.toISOString().split("T")[0];
+  const weekStart = getStartOfWeekString(date);
+  const todayKey = getLocalDateString(date);
 
   const currentWeekPlan = weeklyPlans.find((p) => p.weekStart === weekStart);
   const currentDailyPlan = dailyPlans.find((p) => p.date === todayKey);

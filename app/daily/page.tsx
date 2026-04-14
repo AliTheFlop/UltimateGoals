@@ -5,7 +5,7 @@ import { TaskCard } from "@/components/TaskCard";
 import { TaskModal } from "@/components/TaskModal";
 import { ChevronLeft, ChevronRight, Plus, Sun, Moon, GripVertical, Clock, CalendarClock } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
-import { cn } from "@/lib/utils";
+import { cn, getLocalDateString } from "@/lib/utils";
 
 function formatDate(d: Date) {
     return d.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
@@ -17,7 +17,7 @@ export default function DailyPage() {
     const [mode, setMode] = useState<"plan" | "review">("plan");
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
-    const dateKey = currentDate.toISOString().split("T")[0]; // YYYY-MM-DD
+    const dateKey = getLocalDateString(currentDate); // YYYY-MM-DD
 
     // -- Plan & Initialization --
     const planIndex = dailyPlans.findIndex((p) => p.date === dateKey);
