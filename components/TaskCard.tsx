@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Repeat, StickyNote } from "lucide-react";
+import { Check, Repeat, StickyNote, GripVertical } from "lucide-react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface TaskCardProps {
@@ -10,6 +11,11 @@ interface TaskCardProps {
   hasNotes: boolean;
   onToggle: (e: React.MouseEvent) => void;
   onClick: () => void;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragEnter?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
 }
 
 export function TaskCard({
@@ -19,10 +25,27 @@ export function TaskCard({
   hasNotes,
   onToggle,
   onClick,
+  draggable,
+  onDragStart,
+  onDragEnter,
+  onDragEnd,
+  onDragOver,
 }: TaskCardProps) {
+  const [dragEnabled, setDragEnabled] = useState(false);
+
   return (
     <div
       onClick={onClick}
+      draggable={draggable && dragEnabled}
+      onDragStart={(e) => {
+          if (onDragStart) onDragStart(e);
+      }}
+      onDragEnter={onDragEnter}
+      onDragEnd={(e) => {
+          if (onDragEnd) onDragEnd(e);
+          setDragEnabled(false);
+      }}
+      onDragOver={onDragOver}
       className={cn(
         "group flex flex-col gap-2 p-4 rounded-xl border transition-all duration-200 cursor-pointer shadow-sm relative",
         completed
@@ -30,7 +53,18 @@ export function TaskCard({
           : "bg-zinc-900/60 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/80"
       )}
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-3">
+        {/* Drag Handle */}
+        <div 
+          className="mt-0.5 opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-opacity cursor-grab text-zinc-500 hover:text-amber-500"
+          onMouseEnter={() => setDragEnabled(true)}
+          onMouseLeave={() => setDragEnabled(false)}
+          onClick={(e) => e.stopPropagation()}
+          title="Drag to reorder"
+        >
+          <GripVertical className="w-5 h-5 pointer-events-none" />
+        </div>
+
         {/* Toggle Button */}
         <button
           onClick={(e) => {

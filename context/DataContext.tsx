@@ -22,6 +22,7 @@ export interface MonthlyGoal {
   month: number; // 0-11
   year: number;
   completed: boolean;
+  order?: number;
 }
 
 export interface Task {

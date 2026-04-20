@@ -3,7 +3,7 @@
 import { useData, MonthlyGoal } from "@/context/DataContext";
 import { MonthlyGoalCard } from "@/components/MonthlyGoalCard";
 import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useMemo } from "react";
 
 export default function MonthlyGoalsPage() {
   const { monthlyGoals, setMonthlyGoals } = useData();
@@ -20,9 +20,40 @@ export default function MonthlyGoalsPage() {
     setDate(newDate);
   };
 
-  const displayedGoals = monthlyGoals.filter(
-    (g) => g.month === currentMonth && g.year === currentYear
-  );
+  // Sort by order safely
+  const displayedGoals = useMemo(() => {
+    return [...monthlyGoals]
+      .filter((g) => g.month === currentMonth && g.year === currentYear)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, [monthlyGoals, currentMonth, currentYear]);
+
+  // --- Drag and Drop State ---
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    dragItem.current = index;
+  };
+  const handleDragEnter = (e: React.DragEvent, index: number) => {
+    dragOverItem.current = index;
+  };
+  const handleDragEnd = () => {
+    if (dragItem.current !== null && dragOverItem.current !== null && dragItem.current !== dragOverItem.current) {
+        const newDisplayed = [...displayedGoals];
+        const draggedGoal = newDisplayed.splice(dragItem.current, 1)[0];
+        newDisplayed.splice(dragOverItem.current, 0, draggedGoal);
+        
+        const updatedGoals = newDisplayed.map((goal, i) => ({ ...goal, order: i }));
+        
+        setMonthlyGoals(monthlyGoals.map(g => {
+            const found = updatedGoals.find(ug => ug.id === g.id);
+            return found ? found : g;
+        }));
+    }
+    dragItem.current = null;
+    dragOverItem.current = null;
+  };
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); };
 
   const addGoal = () => {
     const newGoal: MonthlyGoal = {
@@ -31,6 +62,7 @@ export default function MonthlyGoalsPage() {
       month: currentMonth,
       year: currentYear,
       completed: false,
+      order: displayedGoals.length,
     };
     setMonthlyGoals([...monthlyGoals, newGoal]);
   };
@@ -84,7 +116,7 @@ export default function MonthlyGoalsPage() {
           </div>
         )}
         
-        {displayedGoals.map((goal) => (
+        {displayedGoals.map((goal, index) => (
           <MonthlyGoalCard
             key={goal.id}
             id={goal.id}
@@ -94,6 +126,11 @@ export default function MonthlyGoalsPage() {
             onChange={(text) => updateGoal(goal.id, { text })}
             onDelete={() => deleteGoal(goal.id)}
             placeholder={`Focus for ${monthName}...`}
+            draggable
+            onDragStart={(e) => handleDragStart(e, index)}
+            onDragEnter={(e) => handleDragEnter(e, index)}
+            onDragEnd={handleDragEnd}
+            onDragOver={handleDragOver}
           />
         ))}
       </div>

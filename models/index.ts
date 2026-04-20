@@ -35,6 +35,7 @@ const monthlyGoalSchema = new Schema({
   month: { type: Number, required: true }, // 0-11
   year: { type: Number, required: true },
   completed: { type: Boolean, default: false },
+  order: { type: Number, default: 0 },
 }, { timestamps: true });
 
 // --- Weekly Plan Schema ---

@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, Trash2 } from "lucide-react";
+import { Check, Trash2, GripVertical } from "lucide-react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface MonthlyGoalCardProps {
@@ -11,6 +12,11 @@ interface MonthlyGoalCardProps {
   onChange: (text: string) => void;
   onDelete: () => void;
   placeholder?: string;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragEnter?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
 }
 
 // 5 colors matching YearlyGoals
@@ -30,7 +36,14 @@ export function MonthlyGoalCard({
   onChange,
   onDelete,
   placeholder = "Focus for this month...",
+  draggable,
+  onDragStart,
+  onDragEnter,
+  onDragEnd,
+  onDragOver,
 }: MonthlyGoalCardProps) {
+  const [dragEnabled, setDragEnabled] = useState(false);
+
   // Stable random color based on ID
   const hash = id.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const colorIndex = hash % COLORS.length;
@@ -38,6 +51,16 @@ export function MonthlyGoalCard({
 
   return (
     <div
+      draggable={draggable && dragEnabled}
+      onDragStart={(e) => {
+          if (onDragStart) onDragStart(e);
+      }}
+      onDragEnter={onDragEnter}
+      onDragEnd={(e) => {
+          if (onDragEnd) onDragEnd(e);
+          setDragEnabled(false);
+      }}
+      onDragOver={onDragOver}
       className={cn(
         "group relative flex flex-col p-5 rounded-2xl border-2 transition-all duration-300 min-h-[320px] shadow-sm",
         completed
@@ -45,6 +68,17 @@ export function MonthlyGoalCard({
           : cn("bg-zinc-900/60", theme.border, theme.hoverBorder)
       )}
     >
+      {/* Drag Handle */}
+      <div 
+        className="absolute top-4 right-4 opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-opacity cursor-grab text-zinc-500 hover:text-amber-500 z-10"
+        onMouseEnter={() => setDragEnabled(true)}
+        onMouseLeave={() => setDragEnabled(false)}
+        onClick={(e) => e.stopPropagation()}
+        title="Drag to reorder"
+      >
+        <GripVertical className="w-5 h-5 pointer-events-none" />
+      </div>
+
       <textarea
         rows={8}
         value={text}

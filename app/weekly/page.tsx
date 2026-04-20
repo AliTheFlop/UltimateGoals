@@ -4,7 +4,7 @@ import { useData, WeeklyPlan, Task } from "@/context/DataContext";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskModal } from "@/components/TaskModal";
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { getLocalDateString, getStartOfWeekDate, getStartOfWeekString } from "@/lib/utils";
 
 
@@ -17,6 +17,34 @@ export default function WeeklyPlanningPage() {
   const { weeklyPlans, setWeeklyPlans, recurringTasks, setRecurringTasks } = useData();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+
+  // --- Drag and Drop State ---
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    dragItem.current = index;
+  };
+
+  const handleDragEnter = (e: React.DragEvent, index: number) => {
+    dragOverItem.current = index;
+  };
+
+  const handleDragEnd = () => {
+    if (dragItem.current !== null && dragOverItem.current !== null && dragItem.current !== dragOverItem.current) {
+      if (!plan) return;
+      const newTasks = [...plan.tasks];
+      const draggedTask = newTasks.splice(dragItem.current, 1)[0];
+      newTasks.splice(dragOverItem.current, 0, draggedTask);
+      savePlan({ ...plan, tasks: newTasks });
+    }
+    dragItem.current = null;
+    dragOverItem.current = null;
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
 
   const weekStart = useMemo(() => getStartOfWeekDate(currentDate), [currentDate]);
   const weekEnd = new Date(weekStart);
@@ -101,20 +129,20 @@ export default function WeeklyPlanningPage() {
     let newRecurringList = [...recurringTasks];
 
     if (newFreq) {
-        if (existingRecurringIndex >= 0) {
-            newRecurringList[existingRecurringIndex] = { ...newRecurringList[existingRecurringIndex], frequency: newFreq };
-        } else {
-            newRecurringList.push({
-                id: crypto.randomUUID(),
-                text: task.text,
-                frequency: newFreq,
-                time: ""
-            });
-        }
+      if (existingRecurringIndex >= 0) {
+        newRecurringList[existingRecurringIndex] = { ...newRecurringList[existingRecurringIndex], frequency: newFreq };
+      } else {
+        newRecurringList.push({
+          id: crypto.randomUUID(),
+          text: task.text,
+          frequency: newFreq,
+          time: ""
+        });
+      }
     } else {
-        if (existingRecurringIndex >= 0) {
-            newRecurringList = newRecurringList.filter((_, i) => i !== existingRecurringIndex);
-        }
+      if (existingRecurringIndex >= 0) {
+        newRecurringList = newRecurringList.filter((_, i) => i !== existingRecurringIndex);
+      }
     }
     setRecurringTasks(newRecurringList);
   };
@@ -129,12 +157,12 @@ export default function WeeklyPlanningPage() {
               {formatDate(weekStart)} - {formatDate(weekEnd)}
             </h1>
             <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800">
-               <button onClick={() => navigateWeek(-1)} className="p-1 hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-200">
-                  <ChevronLeft className="w-5 h-5"/>
-               </button>
-               <button onClick={() => navigateWeek(1)} className="p-1 hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-200">
-                  <ChevronRight className="w-5 h-5"/>
-               </button>
+              <button onClick={() => navigateWeek(-1)} className="p-1 hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-200">
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button onClick={() => navigateWeek(1)} className="p-1 hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-200">
+                <ChevronRight className="w-5 h-5" />
+              </button>
             </div>
           </div>
           <p className="text-zinc-500 mt-2">
@@ -146,67 +174,72 @@ export default function WeeklyPlanningPage() {
       <div className="space-y-8">
         {/* ONE BIG GOAL */}
         <section className="bg-zinc-900/30 p-6 rounded-2xl border border-zinc-800/50">
-            <h3 className="text-lg font-medium text-zinc-300 mb-4 flex items-center gap-2">
-                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
-                One Big Goal
-            </h3>
-            <textarea
-                value={plan?.bigGoal || ""}
-                onChange={(e) => updateBigGoal(e.target.value)}
-                placeholder="The single most important thing this week..."
-                className="w-full bg-transparent text-lg md:text-2xl font-bold text-zinc-100 placeholder:text-zinc-700 outline-none resize-none"
-                rows={2}
-            />
+          <h3 className="text-lg font-medium text-zinc-300 mb-4 flex items-center gap-2">
+            <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+            One Big Goal
+          </h3>
+          <textarea
+            value={plan?.bigGoal || ""}
+            onChange={(e) => updateBigGoal(e.target.value)}
+            placeholder="The single most important thing this week..."
+            className="w-full bg-transparent text-lg md:text-2xl font-bold text-zinc-100 placeholder:text-zinc-700 outline-none resize-none"
+            rows={2}
+          />
         </section>
 
         {/* TASKS */}
         <section>
-            <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-zinc-300">Supporting Tasks</h3>
-                <button
-                    onClick={addTask}
-                    className="flex items-center gap-2 text-sm text-zinc-400 hover:text-amber-500 transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                    Add Task
-                </button>
-            </div>
-            
-            <div className="space-y-3">
-                {plan?.tasks.length === 0 && (
-                     <p className="text-zinc-600 text-sm italic">Add tasks that help you achieve the Big Goal.</p>
-                )}
-                {plan?.tasks.map((task) => (
-                    <TaskCard
-                        key={task.id}
-                        text={task.text}
-                        completed={task.completed}
-                        isDaily={task.frequency === "daily"}
-                        hasNotes={!!task.notes}
-                        onToggle={() => updateTask(task.id, { completed: !task.completed })}
-                        onClick={() => setEditingTaskId(task.id)}
-                    />
-                ))}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-medium text-zinc-300">Supporting Tasks</h3>
+            <button
+              onClick={addTask}
+              className="flex items-center gap-2 text-sm text-zinc-400 hover:text-amber-500 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Add Task
+            </button>
+          </div>
 
-                <TaskModal 
-                    isOpen={!!editingTaskId}
-                    task={editingTaskId ? plan?.tasks.find(t => t.id === editingTaskId) || null : null}
-                    onClose={() => setEditingTaskId(null)}
-                    onSave={(updates) => {
-                        if (!editingTaskId) return;
-                        updateTask(editingTaskId, updates);
-                        if (updates.frequency !== undefined) {
-                            handleFrequencyChange(editingTaskId, updates.frequency as "daily" | undefined);
-                        }
-                    }}
-                    onDelete={() => {
-                        if (editingTaskId) {
-                            handleFrequencyChange(editingTaskId, undefined);
-                            deleteTask(editingTaskId);
-                        }
-                    }}
-                />
-            </div>
+          <div className="space-y-3">
+            {plan?.tasks.length === 0 && (
+              <p className="text-zinc-600 text-sm italic">Add tasks that help you achieve the Big Goal.</p>
+            )}
+            {plan?.tasks.map((task, index) => (
+              <TaskCard
+                key={task.id}
+                text={task.text}
+                completed={task.completed}
+                isDaily={task.frequency === "daily"}
+                hasNotes={!!task.notes}
+                onToggle={() => updateTask(task.id, { completed: !task.completed })}
+                onClick={() => setEditingTaskId(task.id)}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragEnter={(e) => handleDragEnter(e, index)}
+                onDragEnd={handleDragEnd}
+                onDragOver={handleDragOver}
+              />
+            ))}
+
+            <TaskModal
+              isOpen={!!editingTaskId}
+              task={editingTaskId ? plan?.tasks.find(t => t.id === editingTaskId) || null : null}
+              onClose={() => setEditingTaskId(null)}
+              onSave={(updates) => {
+                if (!editingTaskId) return;
+                updateTask(editingTaskId, updates);
+                if (updates.frequency !== undefined) {
+                  handleFrequencyChange(editingTaskId, updates.frequency as "daily" | undefined);
+                }
+              }}
+              onDelete={() => {
+                if (editingTaskId) {
+                  handleFrequencyChange(editingTaskId, undefined);
+                  deleteTask(editingTaskId);
+                }
+              }}
+            />
+          </div>
         </section>
       </div>
     </div>

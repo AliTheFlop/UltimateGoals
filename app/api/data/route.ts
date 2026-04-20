@@ -56,7 +56,7 @@ export async function GET() {
     // The frontend likely only cares about 'id'.
     
     const yearlyGoals = await YearlyGoal.find({ userId });
-    const monthlyGoals = await MonthlyGoal.find({ userId });
+    const monthlyGoals = await MonthlyGoal.find({ userId }).sort({ order: 1 });
     const weeklyPlans = await WeeklyPlan.find({ userId });
     const dailyPlans = await DailyPlan.find({ userId });
     const recurringTasks = await RecurringTask.find({ userId });

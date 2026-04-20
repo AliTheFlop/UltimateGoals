@@ -17,6 +17,33 @@ export default function DailyPage() {
     const [mode, setMode] = useState<"plan" | "review">("plan");
     const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
 
+    // --- Drag and Drop State ---
+    const dragItem = useRef<number | null>(null);
+    const dragOverItem = useRef<number | null>(null);
+
+    const handleDragStart = (e: React.DragEvent, index: number) => {
+        dragItem.current = index;
+    };
+
+    const handleDragEnter = (e: React.DragEvent, index: number) => {
+        dragOverItem.current = index;
+    };
+
+    const handleDragEnd = () => {
+        if (dragItem.current !== null && dragOverItem.current !== null && dragItem.current !== dragOverItem.current) {
+            const newTasks = [...allTasks];
+            const draggedTask = newTasks.splice(dragItem.current, 1)[0];
+            newTasks.splice(dragOverItem.current, 0, draggedTask);
+            saveTasks(newTasks);
+        }
+        dragItem.current = null;
+        dragOverItem.current = null;
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault(); // Necessary to allow dropping
+    };
+
     const dateKey = getLocalDateString(currentDate); // YYYY-MM-DD
 
     // -- Plan & Initialization --
@@ -211,7 +238,7 @@ export default function DailyPage() {
                                 <p className="text-sm">Click "Add Task" to start planning</p>
                             </div>
                         )}
-                        {allTasks.map((task) => (
+                        {allTasks.map((task, index) => (
                             <TaskCard
                                 key={task.id}
                                 text={task.text}
@@ -220,6 +247,11 @@ export default function DailyPage() {
                                 hasNotes={!!task.notes}
                                 onToggle={(e) => updateTask(task.id, { completed: !task.completed })}
                                 onClick={() => setEditingTaskId(task.id)}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, index)}
+                                onDragEnter={(e) => handleDragEnter(e, index)}
+                                onDragEnd={handleDragEnd}
+                                onDragOver={handleDragOver}
                             />
                         ))}
 
